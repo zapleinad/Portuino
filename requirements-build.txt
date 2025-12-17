@@ -1,0 +1,7 @@
+# Dependências para BUILD (empacotamento)
+pyinstaller>=6.0
+pillow>=9.0
+pyserial>=3.5
+
+# Opcional (somente se você usar o interpretador com Arduino real via Firmata)
+pyfirmata>=1.1.0

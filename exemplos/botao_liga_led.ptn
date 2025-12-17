@@ -1,0 +1,16 @@
+inicio
+    inteiro led <- 13
+    inteiro botao <- 2
+
+    configurar_saida(led)
+    configurar_entrada(botao)
+
+    enquanto (verdadeiro)
+        se (ler(botao) == 1)
+            ligar(led)
+        senao
+            desligar(led)
+        fim_se
+        esperar(100)
+    fim_enquanto
+fim

@@ -1,0 +1,13 @@
+inicio
+    inteiro trig <- 9
+    inteiro echo <- 10
+
+    configurar_saida(trig)
+    configurar_entrada(echo)
+
+    enquanto (verdadeiro)
+        distancia <- medir_distancia(trig, echo)
+        escrever("Distância: " + distancia + " cm")
+        esperar(1000)
+    fim_enquanto
+fim

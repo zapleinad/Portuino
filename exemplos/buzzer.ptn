@@ -1,0 +1,13 @@
+inicio
+    inteiro buzzer <- 8
+    configurar_saida(buzzer)
+
+    para i de 1 ate 10 passo 1
+        ligar(buzzer)
+        esperar(200)
+        desligar(buzzer)
+        esperar(200)
+    fim_para
+
+    escrever("Som emitido com sucesso!")
+fim
