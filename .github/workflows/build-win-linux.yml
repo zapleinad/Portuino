@@ -15,16 +15,29 @@ jobs:
         include:
           - os: windows-latest
             artifact_name: PortuinoIDE-Windows
-            data_sep: ';'
           - os: ubuntu-22.04
             artifact_name: PortuinoIDE-Linux
-            data_sep: ':'
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # Debug: mostra o que existe no runner (ajuda MUITO quando dá erro no Windows)
+      - name: Debug (list files)
+        shell: bash
+        run: |
+          echo "PWD=$(pwd)"
+          ls -la
+          echo "---- icons ----"
+          ls -la icons || true
+          echo "---- checks ----"
+          test -f ide_portuino.py && echo "OK: ide_portuino.py" || (echo "ERRO: ide_portuino.py não existe" && exit 1)
+          test -f portuino_compiler.py && echo "OK: portuino_compiler.py" || (echo "ERRO: portuino_compiler.py não existe" && exit 1)
+          test -f interpretador_portuino.py && echo "OK: interpretador_portuino.py" || echo "AVISO: interpretador_portuino.py não existe (mas você declarou hidden-import)"
+          test -f manual_portuino.md && echo "OK: manual_portuino.md" || echo "AVISO: manual_portuino.md não existe (mas você está empacotando)"
+          test -f requirements-build.txt && echo "OK: requirements-build.txt" || (echo "ERRO: requirements-build.txt não existe" && exit 1)
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -33,30 +46,46 @@ jobs:
           cache: "pip"
           cache-dependency-path: "requirements-build.txt"
 
+      # Tkinter no Linux (necessário para apps GUI com Tk)
+      - name: OS deps (Linux - Tkinter)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk tk-dev
+
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-build.txt
+          pip install pyinstaller
 
-      # Build (Windows)
+      # Build (Windows) - sem backticks (evita quebrar por whitespace)
       - name: Build with PyInstaller (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $iconArg = ""
-          if (Test-Path "icons\portuino.ico") { $iconArg="--icon=icons\portuino.ico" }
+          $args = @(
+            "-m","PyInstaller",
+            "--noconsole",
+            "--name","PortuinoIDE",
+            "--paths",".",
+            "--hidden-import","portuino_compiler",
+            "--hidden-import","interpretador_portuino",
+            "--add-data","icons;icons",
+            "--add-data","manual_portuino.md;.",
+            "--clean",
+            "ide_portuino.py"
+          )
 
-          pyinstaller --noconsole --name PortuinoIDE $iconArg `
-            --paths . `
-            --hidden-import portuino_compiler `
-            --hidden-import interpretador_portuino `
-            --add-data "icons;icons" `
-            --add-data "manual_portuino.md;." `
-            --clean ide_portuino.py
+          if (Test-Path "icons\portuino.ico") {
+            $args = $args[0..5] + @("--icon=icons\portuino.ico") + $args[6..($args.Length-1)]
+          }
 
-      # Build (Linux)
+          python @args
+
+      # Build (Linux) - com quebras corretas
       - name: Build with PyInstaller (Linux)
-        if: runner.os != 'Windows'
+        if: runner.os == 'Linux'
         shell: bash
         run: |
           iconArg=""
@@ -64,7 +93,13 @@ jobs:
             iconArg="--icon=icons/portuino.png"
           fi
 
-          pyinstaller --noconsole --name PortuinoIDE $iconArg             --paths .             --hidden-import portuino_compiler             --hidden-import interpretador_portuino             --add-data "icons:icons"             --add-data "manual_portuino.md:."             --clean ide_portuino.py
+          pyinstaller --noconsole --name PortuinoIDE $iconArg \
+            --paths . \
+            --hidden-import portuino_compiler \
+            --hidden-import interpretador_portuino \
+            --add-data "icons:icons" \
+            --add-data "manual_portuino.md:." \
+            --clean ide_portuino.py
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
